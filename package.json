@@ -1,0 +1,22 @@
+{
+  "name": "pdf-dark-reader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MV3 Edge/Chrome extension: a crisp dark mode for PDFs (CSS-filter recolor over a thin pdf.js viewer) with a built-in highlighter.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0",
+    "@types/chrome": "^0.0.268"
+  },
+  "dependencies": {
+    "pdfjs-dist": "4.5.136"
+  }
+}
