@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  body{width:260px;font:13px Segoe UI,system-ui;padding:14px;background:#1e1f22;color:#d7d4cc;margin:0}
+  h3{margin:0 0 10px} label{display:flex;justify-content:space-between;align-items:center;margin:8px 0}
+  select,button{background:#2a2d31;color:#d7d4cc;border:1px solid #ffffff1a;border-radius:6px;padding:4px 6px}
+  .row{margin:10px 0} button{cursor:pointer;width:100%;margin-top:6px}
+</style></head>
+<body>
+  <h3>PDF Dark Reader</h3>
+  <label>Default theme
+    <select id="theme">
+      <option value="smartDark">Smart Dark</option>
+      <option value="warmSepia">Warm Sepia</option>
+      <option value="off">Off</option>
+    </select>
+  </label>
+  <label>Pin toolbar <input type="checkbox" id="pinned"></label>
+  <label>Allow local files (file://) <input type="checkbox" id="fileAccess"></label>
+  <div class="row">
+    <button id="export">Export highlights (.json)</button>
+    <button id="import">Import highlights…</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body></html>

@@ -1,0 +1,16 @@
+# Brainstorming visual-companion scratch files
+.superpowers/
+
+# Local editor / agent settings
+.claude/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Manual-test corpus binaries (large / copyrighted — see test/corpus/README.md).
+# The README + CHECKLIST docs stay tracked; the sample files are supplied locally.
+test/corpus/*.pdf
+test/corpus/*.png

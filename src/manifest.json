@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "PDF Dark Reader",
+  "version": "0.1.0",
+  "description": "A clean, graceful dark mode for PDFs — highlights keep their color.",
+  "permissions": ["declarativeNetRequest", "storage", "downloads"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background/service-worker.js", "type": "module" },
+  "action": { "default_popup": "popup/popup.html", "default_title": "PDF Dark Reader" },
+  "web_accessible_resources": [
+    { "resources": ["viewer/*", "pdfjs/*"], "matches": ["<all_urls>"] }
+  ]
+}
