@@ -7,6 +7,8 @@ export interface ToolbarHandlers {
   onColor: (c: HighlightColor) => void;
   onShade: (value: number) => void;
   onTextLevel: (value: number) => void;
+  onSave: () => void;
+  onToggleFind: () => void;
 }
 
 const THEME_CYCLE: ThemeName[] = ["smartDark", "warmSepia", "off"];
@@ -79,5 +81,17 @@ export function mountToolbar(
     swatches.appendChild(dot);
   }
 
-  host.append(themeBtn, shade, textCtl, hlBtn, swatches);
+  const saveBtn = document.createElement("button");
+  saveBtn.style.cssText = BTN;
+  saveBtn.textContent = "💾 Save with highlights";
+  saveBtn.title = "Download a copy of this PDF with your highlights burned in";
+  saveBtn.addEventListener("click", () => handlers.onSave());
+
+  const findBtn = document.createElement("button");
+  findBtn.style.cssText = BTN;
+  findBtn.textContent = "🔍 Find";
+  findBtn.title = "Find in document (Ctrl/⌘-F)";
+  findBtn.addEventListener("click", () => handlers.onToggleFind());
+
+  host.append(themeBtn, shade, textCtl, hlBtn, swatches, saveBtn, findBtn);
 }

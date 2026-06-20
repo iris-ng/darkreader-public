@@ -1,9 +1,6 @@
 # Brainstorming visual-companion scratch files
 .superpowers/
 
-# Local editor / agent settings
-.claude/
-
 # Dependencies
 node_modules/
 

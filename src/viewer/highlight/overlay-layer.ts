@@ -1,4 +1,5 @@
-import { pdfRectToScreen, COLOR_HEX, type Highlight, type Viewport } from "./highlight-model";
+import { COLOR_HEX, type Highlight } from "./highlight-model";
+import { pdfRectToScreen, type PageViewportLike } from "./coords";
 
 /** Ensures an overlay div exists over the given page container and returns it. */
 function ensureOverlay(pageDiv: HTMLElement): HTMLElement {
@@ -17,7 +18,7 @@ function ensureOverlay(pageDiv: HTMLElement): HTMLElement {
 export function renderHighlights(
   pageDiv: HTMLElement,
   highlights: Highlight[],
-  vp: Viewport,
+  vp: PageViewportLike,
   onClick: (id: string) => void,
 ): void {
   const overlay = ensureOverlay(pageDiv);
