@@ -5,11 +5,16 @@ import { hashPdf } from "./highlight/doc-hash";
 import { HighlightStore } from "./highlight/highlight-store";
 import { Highlighter, makeId } from "./highlight/highlighter";
 import { renderHighlights } from "./highlight/overlay-layer";
-import type { Viewport } from "./highlight/highlight-model";
+import type { PageViewportLike } from "./highlight/coords";
 import { mountToolbar } from "./ui/toolbar";
 import { showErrorCard } from "./ui/error-card";
+import { saveHighlighted } from "./export/save";
+import { showToast } from "./ui/toast";
 import { promptPassword } from "./ui/password-prompt";
+import { mountPageNav } from "./ui/page-nav";
+import { mountFindBar } from "./ui/find-bar";
 import { getSettings, saveSettings } from "../common/settings";
+import { parseFileParam } from "./file-param";
 
 declare global {
   interface Window {
@@ -23,11 +28,12 @@ const engine = new ThemeEngine("smartDark");
 const store = new HighlightStore();
 const pages = new Set<HTMLCanvasElement>();
 let docHash = "";
+let sourceName = "";
 let app: PdfApp;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function viewportFor(pageView: any): Viewport {
-  return { scale: pageView.viewport.scale, pageHeightPdf: pageView.viewport.viewBox[3] };
+function viewportFor(pageView: any): PageViewportLike {
+  return pageView.viewport;
 }
 
 function pageRefFromNode(node: Node) {
@@ -79,6 +85,38 @@ async function refreshPage(pageNumber: number): Promise<void> {
   });
 }
 
+function downloadBytes(bytes: Uint8Array, filename: string): void {
+  const buf = new Uint8Array(bytes).buffer as ArrayBuffer;
+  const blob = new Blob([buf], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function onSaveHighlights(): Promise<void> {
+  if (!app.document) return;
+  const res = await saveHighlighted({
+    getHighlights: () => store.get(docHash),
+    getSrcBytes: () => app.document!.getData(),
+    download: downloadBytes,
+    sourceName,
+  });
+  if (res.status === "empty") {
+    showToast("No highlights to save");
+  } else if (res.status === "error") {
+    showToast("Couldn't save highlighted PDF");
+  } else {
+    const n = res.burned ?? 0;
+    const skip = res.skipped ? ` (${res.skipped} skipped)` : "";
+    showToast(`Saved "${res.filename}" — ${n} highlight${n === 1 ? "" : "s"}${skip}`);
+  }
+}
+
 async function main(): Promise<void> {
   const container = document.getElementById("viewerContainer") as HTMLDivElement;
   app = createPdfApp(container);
@@ -97,12 +135,51 @@ async function main(): Promise<void> {
   engine.setShade(settings.darkShade);
   engine.setTextLevel(settings.darkTextLevel);
   engine.setTheme(settings.defaultTheme, [...pages]);
+  const toolbarHost = document.getElementById("toolbar") ?? document.body;
+  const pageNav = mountPageNav(toolbarHost, (p) => { app.pdfViewer.currentPageNumber = p; });
+  app.eventBus.on("pagesinit", () =>
+    pageNav.setPage(app.pdfViewer.currentPageNumber, app.pdfViewer.pagesCount));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.eventBus.on("pagechanging", (e: any) =>
+    pageNav.setPage(e.pageNumber, app.pdfViewer.pagesCount));
+  const findBar = mountFindBar(document.body, {
+    onSearch: (query, { findPrevious, newSearch }) =>
+      app.eventBus.dispatch("find", {
+        source: window,
+        type: newSearch ? "" : "again",
+        query,
+        caseSensitive: false,
+        entireWord: false,
+        highlightAll: true,
+        findPrevious,
+        matchDiacritics: false,
+      }),
+    onClose: () => app.eventBus.dispatch("findbarclose", { source: window }),
+  });
+  // pdf.js reports counts and state on two separate events; keep the latest of
+  // each and push the combined status to the bar.
+  let fState = 0, fCur = 0, fTot = 0;
+  const pushFindStatus = () => findBar.setStatus(fState, fCur, fTot);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.eventBus.on("updatefindmatchescount", (e: any) => {
+    fCur = e.matchesCount?.current ?? 0;
+    fTot = e.matchesCount?.total ?? 0;
+    pushFindStatus();
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.eventBus.on("updatefindcontrolstate", (e: any) => {
+    fState = e.state ?? 0;
+    if (e.matchesCount) { fCur = e.matchesCount.current ?? 0; fTot = e.matchesCount.total ?? 0; }
+    pushFindStatus();
+  });
   mountToolbar({
     onTheme: (t) => engine.setTheme(t, [...pages]),
     onToggleHighlight: (on) => { highlighter.enabled = on; },
     onColor: (c) => highlighter.setColor(c),
     onShade: (v) => { engine.setShade(v); void saveSettings({ darkShade: v }); },
     onTextLevel: (v) => { engine.setTextLevel(v); void saveSettings({ darkTextLevel: v }); },
+    onSave: () => void onSaveHighlights(),
+    onToggleFind: () => findBar.toggle(),
   }, settings.highlightColors, settings.darkShade, settings.darkTextLevel);
 
   // auto-hide toolbar unless pinned
@@ -125,9 +202,25 @@ async function main(): Promise<void> {
     }
   });
 
-  const file = new URLSearchParams(location.search).get("file");
+  // keyboard: Ctrl/Cmd-F toggles find (override the browser's native find,
+  // which can't search the canvas); Esc closes the bar when open.
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      findBar.toggle();
+    } else if (e.key === "Escape" && findBar.isOpen()) {
+      findBar.close();
+    }
+  });
+
+  const file = parseFileParam(location.search);
   console.log("[PDF Dark Reader] boot loaded", { file });
   if (!file) return;
+  try {
+    sourceName = decodeURIComponent(new URL(file, location.href).pathname.split("/").pop() ?? "");
+  } catch {
+    sourceName = "";
+  }
   try {
     await loadDocument(app, file, (incorrect) => promptPassword(incorrect));
     void setTabTitle(file);

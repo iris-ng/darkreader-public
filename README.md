@@ -16,10 +16,12 @@ pnpm install && node build.mjs   # bundles to dist/ — then Load unpacked → d
 - Highlights and figures keep (roughly) their hue instead of being inverted.
 - Works on scanned / image-only PDFs.
 - Built-in highlighter with local persistence and JSON export / import.
+- **💾 Save with highlights** — explicit button downloads a copy of the PDF with highlights written in as real annotations (original untouched; dark-mode not baked in).
 - Opens **password-protected PDFs** (prompts for the password, re-prompts if wrong).
 - The browser tab shows the PDF's own title (or filename), like the native viewer.
 - Toolbar stays pinned by default; auto-hide-on-scroll is an option in the popup.
 - Press `d` to cycle the theme (Smart Dark → Warm Sepia → Off).
+- **🔍 Find in document** — in-document text search via a find bar (Ctrl/⌘-F), with next/previous navigation and a match count.
 
 ## Install & launch (Load unpacked)
 
@@ -75,5 +77,5 @@ The build uses esbuild to bundle the TypeScript together with pdf.js and to copy
 - Because dark mode is a full-page filter, **color photographs render as negatives**. This is the standard trade-off of filter-based dark mode and is fine for text and scanned documents; a per-document opt-out could be added if needed.
 - Highlights are stored locally inside the extension (`chrome.storage.local`), not embedded into the PDF file itself.
 - "Save a copy with highlights burned in" (via pdf-lib) is planned but not yet implemented.
-- A thumbnail sidebar and a find-bar UI are not in v1 (the search engine exists internally, but there is no find UI yet).
+- A thumbnail sidebar is not in v1.
 ```

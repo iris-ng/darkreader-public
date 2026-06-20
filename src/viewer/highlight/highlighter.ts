@@ -1,7 +1,8 @@
 import { HighlightStore } from "./highlight-store";
-import { screenRectToPdf, COLOR_HEX, type Highlight, type HighlightColor, type Viewport } from "./highlight-model";
+import { COLOR_HEX, type Highlight, type HighlightColor } from "./highlight-model";
+import { screenRectToPdf, type PageViewportLike } from "./coords";
 
-interface PageRef { div: HTMLElement; pageNumber: number; viewport: Viewport; }
+interface PageRef { div: HTMLElement; pageNumber: number; viewport: PageViewportLike; }
 
 /** Maps a DOM page element to its PDF page number + viewport (provided by boot from pdf.js). */
 export type PageLookup = (node: Node) => PageRef | null;
